@@ -2,6 +2,12 @@
 
 A high-performance, completely native browser extension that seamlessly injects Movie Ratings (Rotten Tomatoes, IMDb, TMDb) directly into your favorite streaming sites like Amazon Prime Video and Netflix!
 
+<div align="center">
+  <img src="assets/preview_amazon.png" width="800" alt="Amazon Prime Integration"/>
+  <br/><br/>
+  <img src="assets/preview_popup.png" width="300" alt="StreamScore Settings Plugin"/>
+</div>
+
 ## ✨ Features
 
 - **Universal Multi-Platform Support**: Custom DOM injectors automatically find movie and TV show titles inside standard Google searches, visually intensive Netflix Carousels, and highly localized Amazon Prime interfaces across multiple international domains (`.com`, `.de`, `.co.uk`).
