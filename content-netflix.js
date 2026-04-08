@@ -3,7 +3,7 @@
 const PROCESSED_ATTR = 'data-rt-processed';
 
 function createBadge(score) {
-  const badge = document.createElement('span');
+  const badge = document.createElement('rt-badge');
   badge.classList.add('rt-helper-badge', 'netflix-context');
 
   if (!score) {

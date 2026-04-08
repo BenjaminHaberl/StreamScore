@@ -3,7 +3,8 @@
 const PROCESSED_ATTR = 'data-rt-processed';
 
 function createBadge(score) {
-  const badge = document.createElement('span');
+  // Use a custom HTML tag to completely immune the badge from Google's global span CSS selectors
+  const badge = document.createElement('rt-badge');
   badge.classList.add('rt-helper-badge');
 
   if (!score) {
@@ -55,13 +56,8 @@ function processGoogleTitle(titleElement) {
         console.log("RT Helper: Creating badge for score", response.rtScore);
         const badge = createBadge(response.rtScore);
         
-        // Remove old badge if it exists from recycling
-        const oldBadge = titleElement.nextElementSibling;
-        if (oldBadge && oldBadge.classList.contains('rt-helper-badge')) {
-           oldBadge.remove();
-        }
-        
-        titleElement.insertAdjacentElement('afterend', badge);
+        // Use appendChild instead of afterend for standard h3s to avoid Google flex-order and caret-rotation tricks
+        titleElement.appendChild(badge);
       } else {
         console.warn("RT Helper: Valid response but no score found", response);
       }
