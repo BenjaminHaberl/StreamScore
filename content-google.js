@@ -84,25 +84,27 @@ function scanGoogleDOM() {
        }
     });
     
-    const title = titleText.trim();
+    // Clean up junk from common Google Search results
+    let title = titleText.replace(/\s*-\s*(Wikipedia|IMDb|YouTube|Google Search|Rotten Tomatoes)/ig, '').trim();
     if (title && title.length > 0) {
       processGoogleTitle(titleElement, title);
     }
   });
 
-  const knowledgePanelTitle = document.querySelector('h2[data-attrid="title"]');
-  if (knowledgePanelTitle) {
+  // Google constantly A/B tests its Knowledge Panel structure (often switching between h2 and div)
+  const knowledgePanels = document.querySelectorAll('h2[data-attrid="title"], div[data-attrid="title"]');
+  knowledgePanels.forEach(panel => {
       let titleText = "";
-      knowledgePanelTitle.childNodes.forEach(child => {
+      panel.childNodes.forEach(child => {
          if (child.nodeName && child.nodeName.toLowerCase() !== 'rt-badge') {
              titleText += child.textContent;
          }
       });
       const title = titleText.trim();
       if (title && title.length > 0) {
-         processGoogleTitle(knowledgePanelTitle, title);
+         processGoogleTitle(panel, title);
       }
-  }
+  });
 }
 
 function observeDOM() {
