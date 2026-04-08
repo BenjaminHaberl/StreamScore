@@ -8,11 +8,13 @@
     "activeTab"
   ],
   "host_permissions": [
-    "*://*.google.com/*",
-    "*://*.netflix.com/*",
-    "*://*.amazon.com/*",
-    "*://*.primevideo.com/*",
-    "*://*.omdbapi.com/*"
+    "https://www.google.com/search*",
+    "https://www.netflix.com/*",
+    "https://www.amazon.com/gp/video/*",
+    "https://www.amazon.de/gp/video/*",
+    "https://www.amazon.co.uk/gp/video/*",
+    "https://www.omdbapi.com/*",
+    "https://api.themoviedb.org/*"
   ],
   "background": {
     "service_worker": "background.js",

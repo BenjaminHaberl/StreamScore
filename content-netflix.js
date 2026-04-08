@@ -6,12 +6,21 @@ function createBadge(scores) {
   const badge = document.createElement('rt-badge');
   badge.classList.add('rt-helper-badge', 'netflix-context');
 
-  if (!scores || (!scores.rtScore && !scores.imdbScore)) {
-    if (scores && scores.error && !scores.error.toLowerCase().includes('not found')) {
-       // Silently fail if the API key is broken or rate-limited so we don't spam the UI
-       return null;
+  if (!scores || (!scores.rtScore && !scores.imdbScore && !scores.tmdbScore)) {
+    let errorText = 'N/A';
+    if (scores && scores.error) {
+       const errLower = scores.error.toLowerCase();
+       if (errLower.includes('not found')) {
+          errorText = 'N/A';
+       } else if (errLower.includes('limit')) {
+          errorText = 'Limit';
+       } else if (errLower.includes('api key')) {
+          errorText = 'API Key';
+       } else {
+          errorText = 'Err';
+       }
     }
-    badge.textContent = 'N/A';
+    badge.textContent = errorText;
     badge.style.background = 'rgba(100, 100, 100, 0.8)';
     return badge;
   }
@@ -32,6 +41,9 @@ function createBadge(scores) {
   } else if (scores.imdbScore) {
     badge.classList.add('rt-imdb');
     badge.innerHTML = `<span class="rt-icon">⭐</span> ${scores.imdbScore}`;
+  } else if (scores.tmdbScore) {
+    badge.classList.add('rt-tmdb');
+    badge.innerHTML = `<span class="rt-icon">📊</span> ${scores.tmdbScore}`;
   }
 
   return badge;

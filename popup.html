@@ -9,12 +9,21 @@
   <div class="container">
     <h2>🍅 RT Helper</h2>
     <p>Enter your <a href="http://www.omdbapi.com/apikey.aspx" target="_blank">OMDb API Key</a> to fetch Rotten Tomatoes scores.</p>
+    
     <div class="input-group">
       <label for="apiKey">OMDb API Key:</label>
       <input type="text" id="apiKey" placeholder="e.g. 8a3f..." />
     </div>
-    <button id="saveBtn">Save Key</button>
-    <p id="status" class="status"></p>
+
+    <!-- TMDb Key Group -->
+    <div class="input-group">
+      <label for="tmdbApiKey">TMDb API Key (Fallback):</label>
+      <input type="text" id="tmdbApiKey" placeholder="e.g. 1a2b..." autocomplete="off">
+    </div>
+    <p style="font-size: 11px; margin-top: -8px;">Get a free TMDb API key at <a href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org</a></p>
+
+    <button id="saveBtn">Save Keys & Purge Cache</button>
+    <div id="status" class="status"></div>
   </div>
   <script src="popup.js"></script>
 </body>

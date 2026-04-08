@@ -3,7 +3,7 @@
 const PROCESSED_ATTR = 'data-rt-processed';
 
 function createBadge(scores) {
-  if (!scores || (!scores.rtScore && !scores.imdbScore)) {
+  if (!scores || (!scores.rtScore && !scores.imdbScore && !scores.tmdbScore)) {
     // For Google searches, we silently skip rendering N/A or Err 
     // since the vast majority of query results are not actually movies!
     return null;
@@ -29,6 +29,9 @@ function createBadge(scores) {
   } else if (scores.imdbScore) {
     badge.classList.add('rt-imdb');
     badge.innerHTML = `<span class="rt-icon">⭐</span> ${scores.imdbScore}`;
+  } else if (scores.tmdbScore) {
+    badge.classList.add('rt-tmdb');
+    badge.innerHTML = `<span class="rt-icon">📊</span> ${scores.tmdbScore}`;
   }
 
   return badge;
