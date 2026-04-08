@@ -1,9 +1,16 @@
 // background.js
 
+// Emergency clear of the cache to wipe out 'Not found' from previous bugs
+chrome.storage.local.clear(() => console.log("Cache cleared!"));
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("Background received message:", request);
   if (request.action === "getMovieScore") {
     handleMovieScoreRequest(request.title, request.year)
-      .then(data => sendResponse(data))
+      .then(data => {
+         console.log("Background sending response data:", data);
+         sendResponse(data);
+      })
       .catch(error => {
         console.error("Error fetching movie score:", error);
         sendResponse({ error: error.message });
@@ -48,9 +55,16 @@ async function handleMovieScoreRequest(title, year) {
   const response = await fetch(url.toString());
   const data = await response.json();
 
+  console.log("OMDb API Raw Response for", title, ":", data);
+
   if (data.Response === "False") {
+    // If it's an API Key error or limit, we shouldn't cache it as a permanent 'Not Found' 
+    if (data.Error && (data.Error.includes("API key") || data.Error.includes("limit"))) {
+       throw new Error("OMDb API error: " + data.Error);
+    }
+
     // Cache the not-found to prevent hammering the API for bad titles
-    const notFoundData = { rtScore: null, error: "Not found" };
+    const notFoundData = { rtScore: null, error: data.Error || "Not found" };
     chrome.storage.local.set({
       [cacheKey]: { data: notFoundData, timestamp: Date.now() }
     });

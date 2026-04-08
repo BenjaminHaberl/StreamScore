@@ -28,10 +28,10 @@ function createBadge(score) {
 }
 
 function processAmazonTitle(element, titleText, injectTarget) {
-  if (element.getAttribute(PROCESSED_ATTR)) return;
-  element.setAttribute(PROCESSED_ATTR, 'true');
-
   if (!titleText) return;
+
+  if (element.getAttribute(PROCESSED_ATTR) === titleText) return;
+  element.setAttribute(PROCESSED_ATTR, titleText);
 
   chrome.runtime.sendMessage(
     { action: 'getMovieScore', title: titleText },
@@ -48,7 +48,12 @@ function processAmazonTitle(element, titleText, injectTarget) {
         badge.style.marginLeft = '12px';
         badge.style.verticalAlign = 'middle';
         
-        injectTarget.appendChild(badge);
+        const oldBadge = injectTarget.nextElementSibling;
+        if (oldBadge && oldBadge.classList.contains('rt-helper-badge')) {
+           oldBadge.remove();
+        }
+
+        injectTarget.insertAdjacentElement('afterend', badge);
       }
     }
   );
@@ -57,22 +62,19 @@ function processAmazonTitle(element, titleText, injectTarget) {
 function scanAmazonDOM() {
   console.log("RT Helper: Scanning Amazon DOM...");
 
-  // 1. Prime Video Main Details Page Title
-  const detailTitles = document.querySelectorAll('h1[data-automation-id="title"]:not([' + PROCESSED_ATTR + '])');
+  const detailTitles = document.querySelectorAll('h1[data-automation-id="title"]');
   detailTitles.forEach(titleElement => {
     const title = titleElement.textContent.trim();
     processAmazonTitle(titleElement, title, titleElement);
   });
 
-  // 2. Mini Details Modal (when hovering over a thumbnail)
-  const miniModalTitles = document.querySelectorAll('.tst-mini-details-title:not([' + PROCESSED_ATTR + ']), [data-automation-id="mini-details-title"]:not([' + PROCESSED_ATTR + '])');
+  const miniModalTitles = document.querySelectorAll('.tst-mini-details-title, [data-automation-id="mini-details-title"]');
   miniModalTitles.forEach(titleElement => {
     const title = titleElement.textContent.trim();
     processAmazonTitle(titleElement, title, titleElement);
   });
 
-  // 3. Fallback for Hero banners
-  const heroTitles = document.querySelectorAll('.tst-hero-title:not([' + PROCESSED_ATTR + '])');
+  const heroTitles = document.querySelectorAll('.tst-hero-title');
   heroTitles.forEach(titleElement => {
      const title = titleElement.textContent.trim();
      processAmazonTitle(titleElement, title, titleElement);

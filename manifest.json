@@ -27,7 +27,8 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.google.com/search*"
+        "*://*.google.com/search*",
+        "*://*.google.de/search*"
       ],
       "css": [
         "styles.css"
@@ -38,7 +39,8 @@
     },
     {
       "matches": [
-        "*://*.netflix.com/*"
+        "*://*.netflix.com/*",
+        "*://*.netflix.de/*"
       ],
       "css": [
         "styles.css"
@@ -50,6 +52,8 @@
     {
       "matches": [
         "*://*.amazon.com/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.co.uk/*",
         "*://*.primevideo.com/*"
       ],
       "css": [

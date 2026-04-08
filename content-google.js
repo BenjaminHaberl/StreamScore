@@ -30,28 +30,40 @@ function createBadge(score) {
 }
 
 function processGoogleTitle(titleElement) {
-  if (titleElement.getAttribute(PROCESSED_ATTR)) {
-    return;
-  }
-  
-  titleElement.setAttribute(PROCESSED_ATTR, 'true');
-
   const titleText = titleElement.textContent.trim();
   if (!titleText) return;
+
+  // Prevent repeated background fetches if Google reuses the DOM node without changing the text
+  if (titleElement.getAttribute(PROCESSED_ATTR) === titleText) {
+    return;
+  }
+  titleElement.setAttribute(PROCESSED_ATTR, titleText);
+
+  console.log("RT Helper: Sending message to background for:", titleText);
 
   chrome.runtime.sendMessage(
     { action: 'getMovieScore', title: titleText },
     (response) => {
+      console.log("RT Helper: Background response received:", response);
+
       if (chrome.runtime.lastError) {
-        console.error("RT Helper extension error:", chrome.runtime.lastError);
+        console.error("RT Helper extension error:", chrome.runtime.lastError.message || chrome.runtime.lastError);
         return;
       }
 
       if (response && response.rtScore) {
+        console.log("RT Helper: Creating badge for score", response.rtScore);
         const badge = createBadge(response.rtScore);
         
-        // Find a good place to inject. For Google knowledge panel, appending it to the title works well.
-        titleElement.appendChild(badge);
+        // Remove old badge if it exists from recycling
+        const oldBadge = titleElement.nextElementSibling;
+        if (oldBadge && oldBadge.classList.contains('rt-helper-badge')) {
+           oldBadge.remove();
+        }
+        
+        titleElement.insertAdjacentElement('afterend', badge);
+      } else {
+        console.warn("RT Helper: Valid response but no score found", response);
       }
     }
   );
@@ -61,20 +73,18 @@ function scanGoogleDOM() {
   console.log("RT Helper: Scanning Google DOM...");
   
   // 1. Knowledge Panel Title
-  const kPanelTitles = document.querySelectorAll('[data-attrid="title"] span[role="heading"], [data-attrid="title"]');
+  const kPanelTitles = document.querySelectorAll(`[data-attrid="title"] span[role="heading"], [data-attrid="title"]`);
   kPanelTitles.forEach(el => {
     if (el.children.length === 0 || el.getAttribute('role') === 'heading') {
-      console.log("RT Helper: Found Knowledge Panel title:", el.textContent.trim());
       processGoogleTitle(el);
     }
   });
 
   // 2. Standard Search Results (h3 usually holds the title)
-  const standardResults = document.querySelectorAll('h3:not([' + PROCESSED_ATTR + '])');
+  const standardResults = document.querySelectorAll('h3');
   standardResults.forEach(el => {
     // Check if the h3 has text and is likely a search result
     if (el.textContent.trim().length > 0) {
-       console.log("RT Helper: Found Standard Search title:", el.textContent.trim());
        processGoogleTitle(el);
     }
   });

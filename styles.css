@@ -9,13 +9,15 @@
   font-weight: bold;
   color: #fff;
   vertical-align: middle;
-  background-color: #333; /* Default background */
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background-color: #333;
+  /* Default background */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   line-height: 1.2;
 }
 
 .rt-helper-badge.rt-fresh {
-  background-color: #fa320a; /* Tomato red */
+  background-color: #fa320a;
+  /* Tomato red */
 }
 
 .rt-helper-badge.rt-cert-fresh {
@@ -23,7 +25,8 @@
 }
 
 .rt-helper-badge.rt-rotten {
-  background-color: #4CAF50; /* Splat green approximation, RT uses a green blob */
+  background-color: #4CAF50;
+  /* Splat green approximation, RT uses a green blob */
 }
 
 .rt-icon {
