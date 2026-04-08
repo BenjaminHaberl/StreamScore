@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rotten Tomatoes Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h2>🍅 RT Helper</h2>
+    <p>Enter your <a href="http://www.omdbapi.com/apikey.aspx" target="_blank">OMDb API Key</a> to fetch Rotten Tomatoes scores.</p>
+    <div class="input-group">
+      <label for="apiKey">OMDb API Key:</label>
+      <input type="text" id="apiKey" placeholder="e.g. 8a3f..." />
+    </div>
+    <button id="saveBtn">Save Key</button>
+    <p id="status" class="status"></p>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

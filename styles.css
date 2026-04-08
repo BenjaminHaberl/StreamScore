@@ -1,0 +1,46 @@
+.rt-helper-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  vertical-align: middle;
+  background-color: #333; /* Default background */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  line-height: 1.2;
+}
+
+.rt-helper-badge.rt-fresh {
+  background-color: #fa320a; /* Tomato red */
+}
+
+.rt-helper-badge.rt-cert-fresh {
+  background-color: #fa320a;
+}
+
+.rt-helper-badge.rt-rotten {
+  background-color: #4CAF50; /* Splat green approximation, RT uses a green blob */
+}
+
+.rt-icon {
+  margin-right: 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Netflix specific overrides (if needed later) */
+.rt-helper-badge.netflix-context {
+  margin-left: 0;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* Amazon Prime specific overrides */
+.rt-helper-badge.amazon-context {
+  margin-left: 0;
+  margin-right: 8px;
+}
