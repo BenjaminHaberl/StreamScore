@@ -45,108 +45,117 @@ async function handleMovieScoreRequest(title, year) {
     throw new Error("OMDb API key is missing. Please set it in the extension popup.");
   }
 
-  // If the API limit was reached, stop sending network requests to OMDb for 1 hour
+  async function fetchFromTMDb() {
+      if (!tmdbApiKey) return null;
+      console.log("Using TMDb Fallback for:", title);
+      const tmdbUrl = new URL('https://api.themoviedb.org/3/search/multi');
+      tmdbUrl.searchParams.append('api_key', tmdbApiKey);
+      tmdbUrl.searchParams.append('query', title);
+      if (year) tmdbUrl.searchParams.append('year', year);
+
+      const tmdbRes = await fetch(tmdbUrl.toString());
+      const tmdbData = await tmdbRes.json();
+      
+      if (tmdbData.results && tmdbData.results.length > 0) {
+          const bestMatch = tmdbData.results.find(r => r.media_type === 'movie' || r.media_type === 'tv') || tmdbData.results[0];
+          if (bestMatch.vote_average && bestMatch.vote_count > 0) {
+              let tmdbScoreStr = bestMatch.vote_average.toFixed(1);
+              const tmdbResultData = { rtScore: null, imdbScore: null, tmdbScore: tmdbScoreStr };
+              chrome.storage.local.set({ [cacheKey]: { data: tmdbResultData, timestamp: Date.now() } });
+              return tmdbResultData;
+          }
+      }
+      return null;
+  }
+
+  // If the API limit/key was broken recently, bypass OMDb directly to TMDb
   if (apiLockout && Date.now() < apiLockout) {
     if (tmdbApiKey) {
-       console.log("OMDb Rate Limit hit! Using TMDb Fallback for:", title);
-       
-       const tmdbUrl = new URL('https://api.themoviedb.org/3/search/multi');
-       tmdbUrl.searchParams.append('api_key', tmdbApiKey);
-       tmdbUrl.searchParams.append('query', title);
-       if (year) tmdbUrl.searchParams.append('year', year);
-
-       const tmdbRes = await fetch(tmdbUrl.toString());
-       const tmdbData = await tmdbRes.json();
-       
-       if (tmdbData.results && tmdbData.results.length > 0) {
-           // We just want ANY movie or TV show match
-           const bestMatch = tmdbData.results.find(r => r.media_type === 'movie' || r.media_type === 'tv') || tmdbData.results[0];
-           
-           if (bestMatch.vote_average && bestMatch.vote_count > 0) {
-               // Vote average is from 0-10 format, but can have tons of decimals. Format it to one decimal like IMDb (e.g., "8.4")
-               let tmdbScoreStr = bestMatch.vote_average.toFixed(1);
-               const tmdbResultData = { rtScore: null, imdbScore: null, tmdbScore: tmdbScoreStr };
-               chrome.storage.local.set({ [cacheKey]: { data: tmdbResultData, timestamp: Date.now() } });
-               return tmdbResultData;
-           }
-       }
+       const res = await fetchFromTMDb();
+       if (res) return res;
        const notFoundData = { rtScore: null, imdbScore: null, tmdbScore: null, error: "Not found" };
        chrome.storage.local.set({ [cacheKey]: { data: notFoundData, timestamp: Date.now() } });
        return notFoundData;
     }
-    throw new Error("OMDb Rate Limit");
+    throw new Error("OMDb API Rate Limit reached! Wait a while.");
   }
 
   const checkApiLimitException = (responseData) => {
       if (responseData && responseData.Response === "False" && responseData.Error) {
-          if (responseData.Error.toLowerCase().includes("limit")) {
+          if (responseData.Error.toLowerCase().includes("limit") || responseData.Error.toLowerCase().includes("api key")) {
               chrome.storage.local.set({ apiLockout: Date.now() + 60 * 60 * 1000 });
-              throw new Error("OMDb Rate Limit");
-          } else if (responseData.Error.toLowerCase().includes("api key")) {
-              throw new Error("OMDb Invalid API Key");
+              throw new Error("OMDb API Error: " + responseData.Error);
           }
       }
   };
 
-  // Phase 1: Exact Match lookup
-  const exactUrl = new URL('https://www.omdbapi.com/');
-  exactUrl.searchParams.append('apikey', omdbApiKey);
-  exactUrl.searchParams.append('t', title);
-  if (year) exactUrl.searchParams.append('y', year);
+  let data;
+  try {
+      // Phase 1: Exact Match lookup
+      const exactUrl = new URL('https://www.omdbapi.com/');
+      exactUrl.searchParams.append('apikey', omdbApiKey);
+      exactUrl.searchParams.append('t', title);
+      if (year) exactUrl.searchParams.append('y', year);
 
-  let response = await fetch(exactUrl.toString());
-  let data = await response.json();
-  checkApiLimitException(data);
+      let response = await fetch(exactUrl.toString());
+      data = await response.json();
+      checkApiLimitException(data);
 
-  console.log("OMDb API exact search for", title, ":", data);
+      console.log("OMDb API exact search for", title, ":", data);
 
-  // Phase 2: Fuzzy Search Fallback if exact title is Not Found 
-  // (We skip this if the error is due to rate limits or API key limitations)
-  if (data.Response === "False" && (!data.Error || (!data.Error.includes("API key") && !data.Error.includes("limit")))) {
-    console.log("Exact match failed, attempting fuzzy search fallback...");
-    const searchUrl = new URL('https://www.omdbapi.com/');
-    searchUrl.searchParams.append('apikey', omdbApiKey);
-    searchUrl.searchParams.append('s', title);
-    if (year) searchUrl.searchParams.append('y', year);
-    
-    const searchResponse = await fetch(searchUrl.toString());
-    const searchData = await searchResponse.json();
-    checkApiLimitException(searchData);
-    
-    // Phase 3: Fetch full details using the best fuzzy match ID
-    if (searchData.Response === "True" && searchData.Search && searchData.Search.length > 0) {
-       for (let i = 0; i < Math.min(3, searchData.Search.length); i++) {
-           const match = searchData.Search[i];
-           // Ignore video games and podcast episodes
-           if (match.Type !== "movie" && match.Type !== "series") continue;
+      // Phase 2: Fuzzy Search Fallback if exact title is Not Found 
+      if (data.Response === "False") {
+        console.log("Exact match failed, attempting fuzzy search fallback...");
+        const searchUrl = new URL('https://www.omdbapi.com/');
+        searchUrl.searchParams.append('apikey', omdbApiKey);
+        searchUrl.searchParams.append('s', title);
+        if (year) searchUrl.searchParams.append('y', year);
+        
+        const searchResponse = await fetch(searchUrl.toString());
+        const searchData = await searchResponse.json();
+        checkApiLimitException(searchData);
+        
+        // Phase 3: Fetch full details using the best fuzzy match ID
+        if (searchData.Response === "True" && searchData.Search && searchData.Search.length > 0) {
+           for (let i = 0; i < Math.min(3, searchData.Search.length); i++) {
+               const match = searchData.Search[i];
+               if (match.Type !== "movie" && match.Type !== "series") continue;
 
-           console.log(`Evaluating fuzzy match ${i+1}:`, match.Title);
-           
-           const idUrl = new URL('https://www.omdbapi.com/');
-           idUrl.searchParams.append('apikey', omdbApiKey);
-           idUrl.searchParams.append('i', match.imdbID);
-           const idResponse = await fetch(idUrl.toString());
-           const potentialData = await idResponse.json();
-           checkApiLimitException(potentialData);
-           
-           let potentialRT = null;
-           if (potentialData.Ratings) {
-             const rtRating = potentialData.Ratings.find(r => r.Source === "Rotten Tomatoes");
-             if (rtRating) potentialRT = rtRating.Value;
+               console.log(`Evaluating fuzzy match ${i+1}:`, match.Title);
+               
+               const idUrl = new URL('https://www.omdbapi.com/');
+               idUrl.searchParams.append('apikey', omdbApiKey);
+               idUrl.searchParams.append('i', match.imdbID);
+               const idResponse = await fetch(idUrl.toString());
+               const potentialData = await idResponse.json();
+               checkApiLimitException(potentialData);
+               
+               let potentialRT = null;
+               if (potentialData.Ratings) {
+                 const rtRating = potentialData.Ratings.find(r => r.Source === "Rotten Tomatoes");
+                 if (rtRating) potentialRT = rtRating.Value;
+               }
+               let potentialIMDB = potentialData.imdbRating && potentialData.imdbRating !== "N/A" ? potentialData.imdbRating : null;
+               
+               if (potentialRT || potentialIMDB) {
+                   data = potentialData;
+                   console.log("Fuzzy search locked onto blockbuster match:", data.Title);
+                   break; 
+               }
            }
-           let potentialIMDB = potentialData.imdbRating && potentialData.imdbRating !== "N/A" ? potentialData.imdbRating : null;
-           
-           // If we found a result that actually HAS a rating, it's the blockbuster! Break early.
-           if (potentialRT || potentialIMDB) {
-               data = potentialData;
-               console.log("Fuzzy search locked onto blockbuster match:", data.Title);
-               break; 
-           }
-       }
-    }
+        }
+      }
+  } catch (apiError) {
+      if (tmdbApiKey) {
+         console.warn("OMDb structurally failed. Instantly dropping to TMDb Fallback!", apiError.message);
+         const res = await fetchFromTMDb();
+         if (res) return res;
+      } else {
+         throw apiError;
+      }
   }
 
-  if (data.Response === "False") {
+  if (data && data.Response === "False") {
     checkApiLimitException(data);
     const notFoundData = { rtScore: null, imdbScore: null, error: data.Error || "Not found" };
     chrome.storage.local.set({ [cacheKey]: { data: notFoundData, timestamp: Date.now() } });
@@ -155,19 +164,21 @@ async function handleMovieScoreRequest(title, year) {
 
   // Find RT score & IMDb score
   let rtScore = null;
-  if (data.Ratings) {
+  if (data && data.Ratings) {
     const rtRating = data.Ratings.find(r => r.Source === "Rotten Tomatoes");
     if (rtRating) {
       rtScore = rtRating.Value; // e.g. "87%"
     }
   }
   
-  let imdbScore = data.imdbRating && data.imdbRating !== "N/A" ? data.imdbRating : null;
+  let imdbScore = data && data.imdbRating && data.imdbRating !== "N/A" ? data.imdbRating : null;
 
   const resultData = { rtScore, imdbScore };
   
   // 4. Save to Cache
-  chrome.storage.local.set({ [cacheKey]: { data: resultData, timestamp: Date.now() } });
+  chrome.storage.local.set({
+    [cacheKey]: { data: resultData, timestamp: Date.now() }
+  });
 
   return resultData;
 }
