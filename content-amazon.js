@@ -76,9 +76,15 @@ function processAmazonTitle(element, titleText, injectTarget, isCard = false) {
      let foundExisting = false;
      for (let i = 0; i < 4; i++) {
         if (!curr) break;
-        if (curr.querySelector('rt-badge.rt-helper-badge')) {
-           foundExisting = true;
-           break;
+        const existingBadge = curr.querySelector('rt-badge.rt-helper-badge');
+        if (existingBadge) {
+           if (existingBadge.getAttribute('data-rt-title') === cleanTitle) {
+               foundExisting = true; // Perfect duplicate element, seamlessly abort
+               break;
+           } else {
+               // Ghost Badge from a recycled React element! Rip it down!
+               existingBadge.remove();
+           }
         }
         curr = curr.parentElement;
      }
@@ -96,6 +102,9 @@ function processAmazonTitle(element, titleText, injectTarget, isCard = false) {
       if (response) {
         const badge = createBadge(response);
         if (!badge) return; // Safely abort without crashing if the API was rate limited
+        
+        // Brand the badge for the deduplication cycle so React recyclers can detect mismatches
+        badge.setAttribute('data-rt-title', cleanTitle);
         
         if (isCard) {
           badge.style.position = 'absolute';
