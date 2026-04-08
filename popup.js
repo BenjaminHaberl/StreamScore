@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     chrome.storage.local.set({ omdbApiKey: key }, () => {
+      // If the user was previously rate-limited, saving a key clears the digital lockout!
+      chrome.storage.local.remove('apiLockout');
       statusEl.textContent = 'Key saved successfully!';
       statusEl.style.color = '#388e3c';
       setTimeout(() => {

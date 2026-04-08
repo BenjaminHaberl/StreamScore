@@ -7,8 +7,8 @@ function createBadge(scores) {
   badge.classList.add('rt-helper-badge', 'netflix-context');
 
   if (!scores || (!scores.rtScore && !scores.imdbScore)) {
-    if (scores && scores.error && scores.error !== 'Not found') {
-       // Silently fail if the API key is broken or rate-limited so we don't spam the UI with [Err]
+    if (scores && scores.error && !scores.error.toLowerCase().includes('not found')) {
+       // Silently fail if the API key is broken or rate-limited so we don't spam the UI
        return null;
     }
     badge.textContent = 'N/A';
@@ -54,6 +54,8 @@ function processNetflixTitle(element, titleText, injectTarget) {
       if (response) {
         // Create custom badge element
         const badge = createBadge(response);
+        if (!badge) return; // Safely abort if the API returned null (e.g. rate limit error)
+
         badge.style.zIndex = '9999';
         badge.style.position = 'relative';
         badge.style.marginLeft = '12px';

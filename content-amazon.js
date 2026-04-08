@@ -7,8 +7,8 @@ function createBadge(scores) {
   badge.classList.add('rt-helper-badge', 'amazon-context');
 
   if (!scores || (!scores.rtScore && !scores.imdbScore)) {
-    if (scores && scores.error && scores.error !== 'Not found') {
-       // Silently fail if the API key is broken or rate-limited so we don't spam the UI with [Err]
+    if (scores && scores.error && !scores.error.toLowerCase().includes('not found')) {
+       // Silently fail if the API key is broken or rate-limited so we don't spam the UI
        return null;
     }
     badge.textContent = 'N/A';
@@ -41,8 +41,11 @@ function processAmazonTitle(element, titleText, injectTarget, isCard = false) {
   if (!titleText) return;
   
   let cleanTitle = titleText
-    .replace(/^Watch\s+/i, '')
-    .replace(/\s+-\s+(Season|Staffel)\s+\d+/i, '')
+    .replace(/^(Watch |Ansehen )/i, '') // Remove prefix
+    .replace(/[-,\s\(]*(Season|Staffel|Part|Teil)\s*\d+[\)]*/i, '') // Rip off Seasons, Staffels, Parts (e.g., "- Season 9", ", Staffel 9")
+    .replace(/\[.*?\]/g, '') // Strip anything in square brackets like [dt./OV]
+    .replace(/\((OV|OmU|dt.*?|4K UHD|UHD|4K)\)/ig, '') // Strip common Amazon German bracket tags
+    .replace(/\s{2,}/g, ' ') // Clean up double spaces caused by replacements
     .trim();
 
   if (element.getAttribute(PROCESSED_ATTR) === cleanTitle) return;

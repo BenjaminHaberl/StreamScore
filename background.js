@@ -75,14 +75,33 @@ async function handleMovieScoreRequest(title, year) {
     
     // Phase 3: Fetch full details using the best fuzzy match ID
     if (searchData.Response === "True" && searchData.Search && searchData.Search.length > 0) {
-       const bestMatch = searchData.Search[0].imdbID;
-       console.log("Fuzzy search found imdbID:", bestMatch);
-       
-       const idUrl = new URL('https://www.omdbapi.com/');
-       idUrl.searchParams.append('apikey', omdbApiKey);
-       idUrl.searchParams.append('i', bestMatch);
-       const idResponse = await fetch(idUrl.toString());
-       data = await idResponse.json();
+       for (let i = 0; i < Math.min(3, searchData.Search.length); i++) {
+           const match = searchData.Search[i];
+           // Ignore video games and podcast episodes
+           if (match.Type !== "movie" && match.Type !== "series") continue;
+
+           console.log(`Evaluating fuzzy match ${i+1}:`, match.Title);
+           
+           const idUrl = new URL('https://www.omdbapi.com/');
+           idUrl.searchParams.append('apikey', omdbApiKey);
+           idUrl.searchParams.append('i', match.imdbID);
+           const idResponse = await fetch(idUrl.toString());
+           const potentialData = await idResponse.json();
+           
+           let potentialRT = null;
+           if (potentialData.Ratings) {
+             const rtRating = potentialData.Ratings.find(r => r.Source === "Rotten Tomatoes");
+             if (rtRating) potentialRT = rtRating.Value;
+           }
+           let potentialIMDB = potentialData.imdbRating && potentialData.imdbRating !== "N/A" ? potentialData.imdbRating : null;
+           
+           // If we found a result that actually HAS a rating, it's the blockbuster! Break early.
+           if (potentialRT || potentialIMDB) {
+               data = potentialData;
+               console.log("Fuzzy search locked onto blockbuster match:", data.Title);
+               break; 
+           }
+       }
     }
   }
 
