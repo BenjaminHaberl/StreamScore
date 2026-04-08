@@ -58,12 +58,24 @@ function processGoogleTitle(titleElement) {
 }
 
 function scanGoogleDOM() {
+  console.log("RT Helper: Scanning Google DOM...");
+  
+  // 1. Knowledge Panel Title
   const kPanelTitles = document.querySelectorAll('[data-attrid="title"] span[role="heading"], [data-attrid="title"]');
   kPanelTitles.forEach(el => {
-    // Avoid processing the parent if we process the child, or vice versa. 
-    // We'll target the innermost element that contains text.
     if (el.children.length === 0 || el.getAttribute('role') === 'heading') {
+      console.log("RT Helper: Found Knowledge Panel title:", el.textContent.trim());
       processGoogleTitle(el);
+    }
+  });
+
+  // 2. Standard Search Results (h3 usually holds the title)
+  const standardResults = document.querySelectorAll('h3:not([' + PROCESSED_ATTR + '])');
+  standardResults.forEach(el => {
+    // Check if the h3 has text and is likely a search result
+    if (el.textContent.trim().length > 0) {
+       console.log("RT Helper: Found Standard Search title:", el.textContent.trim());
+       processGoogleTitle(el);
     }
   });
 }

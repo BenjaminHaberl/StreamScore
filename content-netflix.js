@@ -56,6 +56,8 @@ function processNetflixTitle(element, titleText, injectTarget) {
 }
 
 function scanNetflixDOM() {
+  console.log("RT Helper: Scanning Netflix DOM...");
+
   // 1. Preview Modal Logo (the large image in the modal when you click a movie)
   const modalLogos = document.querySelectorAll('.previewModal--player-titleTreatment-logo:not([' + PROCESSED_ATTR + '])');
   modalLogos.forEach(logo => {

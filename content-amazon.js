@@ -55,6 +55,8 @@ function processAmazonTitle(element, titleText, injectTarget) {
 }
 
 function scanAmazonDOM() {
+  console.log("RT Helper: Scanning Amazon DOM...");
+
   // 1. Prime Video Main Details Page Title
   const detailTitles = document.querySelectorAll('h1[data-automation-id="title"]:not([' + PROCESSED_ATTR + '])');
   detailTitles.forEach(titleElement => {

@@ -11,10 +11,14 @@
     "*://*.google.com/*",
     "*://*.netflix.com/*",
     "*://*.amazon.com/*",
-    "*://*.primevideo.com/*"
+    "*://*.primevideo.com/*",
+    "*://*.omdbapi.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
   },
   "action": {
     "default_popup": "popup.html",
