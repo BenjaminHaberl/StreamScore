@@ -57,21 +57,20 @@ function processGoogleTitle(titleElement) {
   );
 }
 
-function observeDOM() {
-  const observer = new MutationObserver((mutations) => {
-    // 1. Knowledge Panel Title
-    // Google frequently uses `data-attrid="title"` for knowledge panels
-    const kPanelTitles = document.querySelectorAll('[data-attrid="title"] span[role="heading"], [data-attrid="title"]');
-    
-    kPanelTitles.forEach(el => {
-      // Avoid processing the parent if we process the child, or vice versa. 
-      // We'll target the innermost element that contains text.
-      if (el.children.length === 0 || el.getAttribute('role') === 'heading') {
-        processGoogleTitle(el);
-      }
-    });
+function scanGoogleDOM() {
+  const kPanelTitles = document.querySelectorAll('[data-attrid="title"] span[role="heading"], [data-attrid="title"]');
+  kPanelTitles.forEach(el => {
+    // Avoid processing the parent if we process the child, or vice versa. 
+    // We'll target the innermost element that contains text.
+    if (el.children.length === 0 || el.getAttribute('role') === 'heading') {
+      processGoogleTitle(el);
+    }
+  });
+}
 
-    // We can also target other elements if needed, but the knowledge panel is the main goal for a movie search.
+function observeDOM() {
+  const observer = new MutationObserver(() => {
+    scanGoogleDOM();
   });
 
   observer.observe(document.body, {
@@ -81,4 +80,5 @@ function observeDOM() {
 }
 
 // Initial run for already loaded elements
+scanGoogleDOM();
 observeDOM();

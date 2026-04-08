@@ -3,7 +3,10 @@
   "name": "Rotten Tomatoes Helper",
   "version": "1.0",
   "description": "Visualizes Rotten Tomatoes scores next to movie titles (powered by OMDb API).",
-  "permissions": ["storage", "activeTab"],
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
   "host_permissions": [
     "*://*.google.com/*",
     "*://*.netflix.com/*",
@@ -19,9 +22,38 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.google.com/search*"],
-      "css": ["styles.css"],
-      "js": ["content-google.js"]
+      "matches": [
+        "*://*.google.com/search*"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "js": [
+        "content-google.js"
+      ]
+    },
+    {
+      "matches": [
+        "*://*.netflix.com/*"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "js": [
+        "content-netflix.js"
+      ]
+    },
+    {
+      "matches": [
+        "*://*.amazon.com/*",
+        "*://*.primevideo.com/*"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "js": [
+        "content-amazon.js"
+      ]
     }
   ]
 }
