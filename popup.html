@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Rotten Tomatoes Helper</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="container">
     <h2>🍅 RT Helper</h2>
-    <p>Enter your <a href="http://www.omdbapi.com/apikey.aspx" target="_blank">OMDb API Key</a> to fetch Rotten Tomatoes scores.</p>
-    
+    <p>Enter your <a href="http://www.omdbapi.com/apikey.aspx" target="_blank">OMDb API Key</a> to fetch Rotten Tomatoes
+      scores.</p>
+
     <div class="input-group">
       <label for="apiKey">OMDb API Key:</label>
       <input type="text" id="apiKey" placeholder="e.g. 8a3f..." />
@@ -20,13 +23,14 @@
       <label for="tmdbApiKey">TMDb API Key (Fallback):</label>
       <input type="text" id="tmdbApiKey" placeholder="e.g. 1a2b..." autocomplete="off">
     </div>
-    <p style="font-size: 11px; margin-top: -8px;">Get a free TMDb API key at <a href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org</a></p>
+    <p style="font-size: 11px; margin-top: -8px;">Get a free TMDb API key at <a
+        href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org</a></p>
 
     <hr class="divider">
 
     <div class="toggles-section">
       <h3 class="toggles-title">Active Platforms</h3>
-      
+
       <div class="toggle-row">
         <span>Amazon Prime Video</span>
         <label class="switch">
@@ -36,7 +40,7 @@
       </div>
 
       <div class="toggle-row">
-        <span>Netflix</span>
+        <span>Netflix (experimental)</span>
         <label class="switch">
           <input type="checkbox" id="toggleNetflix" checked>
           <span class="slider round"></span>
@@ -50,12 +54,24 @@
           <span class="slider round"></span>
         </label>
       </div>
+
+      <div class="toggle-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e0e0e0;">
+        <span>Debug Mode (Show API Errors)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleDebug">
+          <span class="slider round"></span>
+        </label>
+      </div>
       <p style="font-size: 11px; color: #888; margin-top: 4px;">*Reload open tabs to apply changes</p>
     </div>
 
-    <button id="saveBtn">Save Keys & Purge Cache</button>
+    <button id="saveBtn">Save Settings</button>
     <div id="status" class="status"></div>
+    <div style="text-align: center; margin-top: 4px;">
+      <a href="#" id="purgeBtn" style="font-size: 11px; color: #fa320a;">Delete Offline Movie Database</a>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>
+
 </html>

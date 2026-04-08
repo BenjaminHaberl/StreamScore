@@ -108,8 +108,12 @@ function scanGoogleDOM() {
 }
 
 function observeDOM() {
+  let debounceTimer;
   const observer = new MutationObserver(() => {
-    scanGoogleDOM();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        scanGoogleDOM();
+    }, 250);
   });
 
   observer.observe(document.body, {

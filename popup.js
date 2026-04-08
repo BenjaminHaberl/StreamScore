@@ -7,16 +7,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleAmazon = document.getElementById('toggleAmazon');
   const toggleNetflix = document.getElementById('toggleNetflix');
   const toggleGoogle = document.getElementById('toggleGoogle');
+  const toggleDebug = document.getElementById('toggleDebug');
 
-  // Load existing configuration (Keys and Toggles)
-  chrome.storage.local.get(['omdbApiKey', 'tmdbApiKey', 'enableAmazon', 'enableNetflix', 'enableGoogle'], (result) => {
-    if (result.omdbApiKey) oApiKeyInput.value = result.omdbApiKey;
-    if (result.tmdbApiKey) tApiKeyInput.value = result.tmdbApiKey;
-    
-    // Default to true if undefined
-    toggleAmazon.checked = result.enableAmazon !== false;
-    toggleNetflix.checked = result.enableNetflix !== false;
-    toggleGoogle.checked = result.enableGoogle !== false;
+  // Load existing configuration (Keys from Local, Toggles from Local)
+  chrome.storage.local.get(['omdbApiKey', 'tmdbApiKey'], (syncResult) => {
+    try {
+      if (syncResult.omdbApiKey) oApiKeyInput.value = atob(syncResult.omdbApiKey);
+      if (syncResult.tmdbApiKey) tApiKeyInput.value = atob(syncResult.tmdbApiKey);
+    } catch(e) {
+      console.warn("Could not decrypt legacy keys");
+    }
+  });
+
+  chrome.storage.local.get(['enableAmazon', 'enableNetflix', 'enableGoogle', 'enableDebug'], (localResult) => {
+    // Default to true if undefined for platforms apps
+    toggleAmazon.checked = localResult.enableAmazon !== false;
+    toggleNetflix.checked = localResult.enableNetflix !== false;
+    toggleGoogle.checked = localResult.enableGoogle !== false;
+    // Default to false for debug explicit tracker
+    toggleDebug.checked = localResult.enableDebug === true;
   });
 
   // Auto-save toggle states immediately upon click
@@ -24,39 +33,57 @@ document.addEventListener('DOMContentLoaded', () => {
      chrome.storage.local.set({
         enableAmazon: toggleAmazon.checked,
         enableNetflix: toggleNetflix.checked,
-        enableGoogle: toggleGoogle.checked
+        enableGoogle: toggleGoogle.checked,
+        enableDebug: toggleDebug.checked
      });
   };
 
   toggleAmazon.addEventListener('change', saveToggles);
   toggleNetflix.addEventListener('change', saveToggles);
   toggleGoogle.addEventListener('change', saveToggles);
+  toggleDebug.addEventListener('change', saveToggles);
 
   // Save new keys
 
   saveBtn.addEventListener('click', () => {
-    const oKey = oApiKeyInput.value.trim();
-    const tKey = tApiKeyInput.value.trim();
+    const oKeyRaw = oApiKeyInput.value.trim();
+    const tKeyRaw = tApiKeyInput.value.trim();
     
-    if (!oKey) {
-      statusEl.textContent = 'Please enter a valid OMDb key.';
+    if (!oKeyRaw && !tKeyRaw) {
+      statusEl.textContent = 'Please enter at least one valid API key.';
       statusEl.style.color = '#d32f2f';
       return;
     }
 
-    chrome.storage.local.set({ omdbApiKey: oKey, tmdbApiKey: tKey }, () => {
-      // Clear out the apiLockout AND selectively blow away the entire movie cache so that 
-      // corrupted rate-limited "N/A" titles from earlier can be fetched safely again!
-      chrome.storage.local.get(null, (items) => {
-          const keysToRemove = Object.keys(items).filter(k => k.startsWith('movie_v2_') || k === 'apiLockout');
-          chrome.storage.local.remove(keysToRemove);
-      });
+    const oKeyEncrypted = oKeyRaw ? btoa(oKeyRaw) : '';
+    const tKeyEncrypted = tKeyRaw ? btoa(tKeyRaw) : '';
+
+    chrome.storage.local.set({ omdbApiKey: oKeyEncrypted, tmdbApiKey: tKeyEncrypted }, () => {
+      // Clear out the apiLockout so the backend tries firing requests immediately again!
+      // (We no longer wipe the entire movie_v2_ database because it acts as an offline dictionary!)
+      chrome.storage.local.remove('apiLockout');
       
-      statusEl.textContent = 'Keys saved successfully!';
+      statusEl.textContent = 'Settings securely saved!';
       statusEl.style.color = '#388e3c';
       setTimeout(() => {
         statusEl.textContent = '';
       }, 3000);
     });
   });
+
+  const purgeBtn = document.getElementById('purgeBtn');
+  if (purgeBtn) {
+    purgeBtn.addEventListener('click', () => {
+       chrome.storage.local.get(null, (items) => {
+          const keysToRemove = Object.keys(items).filter(k => k.startsWith('movie_v2_') || k === 'apiLockout');
+          chrome.storage.local.remove(keysToRemove, () => {
+             statusEl.textContent = 'Offline Movie Database Reset!';
+             statusEl.style.color = '#fa320a';
+             setTimeout(() => {
+               statusEl.textContent = '';
+             }, 3000);
+          });
+       });
+    });
+  }
 });

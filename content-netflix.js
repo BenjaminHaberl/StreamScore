@@ -2,11 +2,15 @@
 
 const PROCESSED_ATTR = 'data-rt-processed';
 
-function createBadge(scores) {
-  const badge = document.createElement('rt-badge');
-  badge.classList.add('rt-helper-badge', 'netflix-context');
+let DEBUG_MODE = false;
 
+function createBadge(scores) {
   if (!scores || (!scores.rtScore && !scores.imdbScore && !scores.tmdbScore)) {
+    if (!DEBUG_MODE) return null; // Abort silently for regular users
+    
+    const badge = document.createElement('rt-badge');
+    badge.classList.add('rt-helper-badge', 'netflix-context');
+    
     let errorText = 'N/A';
     if (scores && scores.error) {
        const errLower = scores.error.toLowerCase();
@@ -25,6 +29,9 @@ function createBadge(scores) {
     return badge;
   }
 
+  const badge = document.createElement('rt-badge');
+  badge.classList.add('rt-helper-badge', 'netflix-context');
+  
   if (scores.rtScore) {
     const percentage = parseInt(scores.rtScore.replace('%', ''), 10);
     if (!isNaN(percentage)) {
@@ -109,19 +116,24 @@ function scanNetflixDOM() {
 }
 
 function observeNetflixDOM() {
+  let debounceTimer;
   const observer = new MutationObserver(() => {
-    scanNetflixDOM();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        scanNetflixDOM();
+    }, 250);
   });
 
   observer.observe(document.body, {
     childList: true,
-    subtree: true,
-    attributes: false
+    subtree: true
   });
 }
 
 // Initial run
-chrome.storage.local.get(['enableNetflix'], (result) => {
+chrome.storage.local.get(['enableNetflix', 'enableDebug'], (result) => {
+   DEBUG_MODE = result.enableDebug === true;
+   
    if (result.enableNetflix !== false) {
        scanNetflixDOM();
        observeNetflixDOM();

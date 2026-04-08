@@ -32,17 +32,30 @@ async function handleMovieScoreRequest(title, year) {
     });
   });
 
-  if (cached && (Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000)) { // 7 days cache
+  if (cached && (Date.now() - cached.timestamp < 365 * 24 * 60 * 60 * 1000)) { // 365 days cache
     return cached.data;
   }
 
-  // 2. Fetch API Key and Check for Lockout
-  const { omdbApiKey, apiLockout, tmdbApiKey } = await new Promise((resolve) => {
-    chrome.storage.local.get(['omdbApiKey', 'apiLockout', 'tmdbApiKey'], resolve);
+  // 2. Fetch Keys securely from local storage and decrypt them
+  const { omdbApiKeyRaw, tmdbApiKeyRaw } = await new Promise((resolve) => {
+    chrome.storage.local.get(['omdbApiKey', 'tmdbApiKey'], (res) => {
+       resolve({ omdbApiKeyRaw: res.omdbApiKey, tmdbApiKeyRaw: res.tmdbApiKey });
+    });
+  });
+  
+  const { apiLockout } = await new Promise((resolve) => {
+    chrome.storage.local.get(['apiLockout'], resolve);
   });
 
-  if (!omdbApiKey) {
-    throw new Error("OMDb API key is missing. Please set it in the extension popup.");
+  let omdbApiKey = '';
+  let tmdbApiKey = '';
+  try {
+     if (omdbApiKeyRaw) omdbApiKey = atob(omdbApiKeyRaw);
+     if (tmdbApiKeyRaw) tmdbApiKey = atob(tmdbApiKeyRaw);
+  } catch(e) { console.warn("Failed to decrypt keys"); }
+
+  if (!omdbApiKey && !tmdbApiKey) {
+    throw new Error("API keys are missing. Please set them in the extension popup.");
   }
 
   async function fetchFromTMDb() {
@@ -90,6 +103,14 @@ async function handleMovieScoreRequest(title, year) {
   };
 
   let data;
+  if (!omdbApiKey) {
+     const res = await fetchFromTMDb();
+     if (res) return res;
+     const notFoundData = { rtScore: null, imdbScore: null, tmdbScore: null, error: "Not found" };
+     chrome.storage.local.set({ [cacheKey]: { data: notFoundData, timestamp: Date.now() } });
+     return notFoundData;
+  }
+
   try {
       // Phase 1: Exact Match lookup
       const exactUrl = new URL('https://www.omdbapi.com/');

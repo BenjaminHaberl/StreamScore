@@ -5,6 +5,7 @@
   "description": "Visualizes Rotten Tomatoes scores next to movie titles (powered by OMDb API).",
   "permissions": [
     "storage",
+    "unlimitedStorage",
     "activeTab"
   ],
   "host_permissions": [

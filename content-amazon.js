@@ -2,11 +2,15 @@
 
 const PROCESSED_ATTR = 'data-rt-processed';
 
-function createBadge(scores) {
-  const badge = document.createElement('rt-badge');
-  badge.classList.add('rt-helper-badge', 'amazon-context');
+let DEBUG_MODE = false;
 
+function createBadge(scores) {
   if (!scores || (!scores.rtScore && !scores.imdbScore && !scores.tmdbScore)) {
+    if (!DEBUG_MODE) return null; // Abort silently for regular users
+    
+    const badge = document.createElement('rt-badge');
+    badge.classList.add('rt-helper-badge', 'amazon-context');
+    
     let errorText = 'N/A';
     if (scores && scores.error) {
        const errLower = scores.error.toLowerCase();
@@ -25,6 +29,9 @@ function createBadge(scores) {
     return badge;
   }
 
+  const badge = document.createElement('rt-badge');
+  badge.classList.add('rt-helper-badge', 'amazon-context');
+  
   if (scores.rtScore) {
     const percentage = parseInt(scores.rtScore.replace('%', ''), 10);
     if (!isNaN(percentage)) {
@@ -205,8 +212,12 @@ function scanAmazonDOM() {
 }
 
 function observeAmazonDOM() {
+  let debounceTimer;
   const observer = new MutationObserver(() => {
-    scanAmazonDOM();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        scanAmazonDOM();
+    }, 250);
   });
 
   observer.observe(document.body, {
@@ -217,7 +228,9 @@ function observeAmazonDOM() {
 }
 
 // Initial run
-chrome.storage.local.get(['enableAmazon'], (result) => {
+chrome.storage.local.get(['enableAmazon', 'enableDebug'], (result) => {
+   DEBUG_MODE = result.enableDebug === true;
+   
    if (result.enableAmazon !== false) {
        scanAmazonDOM();
        observeAmazonDOM();
