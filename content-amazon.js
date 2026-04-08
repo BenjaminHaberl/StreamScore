@@ -27,14 +27,22 @@ function createBadge(score) {
   return badge;
 }
 
-function processAmazonTitle(element, titleText, injectTarget) {
+function processAmazonTitle(element, titleText, injectTarget, isCard = false) {
   if (!titleText) return;
   
-  // Clean up Amazon titles if they have extra text like "Watch " or " - Season 1"
-  let cleanTitle = titleText.replace(/^Watch\s+/i, '').replace(/\s+-\s+Season\s+\d+/i, '').trim();
+  let cleanTitle = titleText
+    .replace(/^Watch\s+/i, '')
+    .replace(/\s+-\s+(Season|Staffel)\s+\d+/i, '')
+    .trim();
 
   if (element.getAttribute(PROCESSED_ATTR) === cleanTitle) return;
   element.setAttribute(PROCESSED_ATTR, cleanTitle);
+  
+  // Deduplicate inline badges in the same wrapper
+  if (!isCard) {
+     const wrapper = injectTarget.closest('.av-detail-title, .dv-node-dp-title, h1, .DVWebNode-detail-atf-wrapper') || injectTarget.parentElement;
+     if (wrapper && wrapper.querySelector('rt-badge.rt-helper-badge')) return;
+  }
 
   chrome.runtime.sendMessage(
     { action: 'getMovieScore', title: cleanTitle },
@@ -44,19 +52,34 @@ function processAmazonTitle(element, titleText, injectTarget) {
         return;
       }
 
-      if (response && response.rtScore) {
-        const badge = createBadge(response.rtScore);
-        badge.style.display = 'inline-flex';
-        badge.style.alignItems = 'center';
-        badge.style.marginLeft = '12px';
-        badge.style.verticalAlign = 'middle';
+      if (response) {
+        const score = response.rtScore || 'N/A';
+        const badge = createBadge(score);
         
-        const oldBadge = injectTarget.nextElementSibling;
+        if (isCard) {
+          badge.style.position = 'absolute';
+          badge.style.top = '6px';
+          badge.style.right = '6px';
+          badge.style.zIndex = '99';
+          badge.style.margin = '0';
+        } else {
+          badge.style.display = 'inline-flex';
+          badge.style.alignItems = 'center';
+          badge.style.marginLeft = '12px';
+          badge.style.verticalAlign = 'middle';
+          badge.style.position = 'relative';
+        }
+        
+        const oldBadge = isCard ? injectTarget.querySelector('rt-badge.rt-helper-badge') : injectTarget.nextElementSibling;
         if (oldBadge && oldBadge.classList.contains('rt-helper-badge')) {
            oldBadge.remove();
         }
 
-        injectTarget.insertAdjacentElement('afterend', badge);
+        if (isCard) {
+          injectTarget.appendChild(badge);
+        } else {
+          injectTarget.insertAdjacentElement('afterend', badge);
+        }
       }
     }
   );
@@ -88,7 +111,35 @@ function scanAmazonDOM() {
     if (title && title.length > 1) {
       // Find a safe parent to append next to if it's an image
       const injectTarget = titleElement.tagName === 'IMG' ? titleElement.parentElement : titleElement;
-      processAmazonTitle(titleElement, title, injectTarget);
+      processAmazonTitle(titleElement, title, injectTarget, false);
+    }
+  });
+
+  // Movie Thumbnail Cards (Home page grids, carousels)
+  const movieCards = document.querySelectorAll('article[data-testid="card"]');
+  movieCards.forEach(card => {
+    let title = card.getAttribute('data-card-title');
+    if (!title) {
+        const btn = card.querySelector('button[aria-label]');
+        if (btn) title = btn.getAttribute('aria-label');
+    }
+    if (!title) {
+        const img = card.querySelector('img[alt]');
+        if (img) title = img.getAttribute('alt');
+    }
+    if (!title) {
+        const link = card.querySelector('a.detailLink-zyfcZQ, a[tabindex="-1"], a');
+        if (link && link.textContent) title = link.textContent.trim();
+    }
+    
+    if (title && title.length > 1) {
+      // Inject inside the packshot wrapper so it scales and moves naturally with Hover animations!
+      const packshot = card.querySelector('[data-testid="packshot"]') || card.querySelector('section') || card;
+      // Ensure the packshot container is positioned so absolute positioning anchors to it
+      if (getComputedStyle(packshot).position === 'static') {
+         packshot.style.position = 'relative';
+      }
+      processAmazonTitle(card, title, packshot, true);
     }
   });
 
@@ -100,14 +151,15 @@ function scanAmazonDOM() {
   miniModalTitles.forEach(titleElement => {
     const title = extractTextOrImageAlt(titleElement);
     if (title && title.length > 1) {
-      processAmazonTitle(titleElement, title, titleElement);
+       processAmazonTitle(titleElement, title, titleElement, false);
     }
   });
+
   const heroTitles = document.querySelectorAll('.tst-hero-title');
   heroTitles.forEach(titleElement => {
      const title = extractTextOrImageAlt(titleElement);
      if (title && title.length > 1) {
-       processAmazonTitle(titleElement, title, titleElement);
+       processAmazonTitle(titleElement, title, titleElement, false);
      }
   });
 }
