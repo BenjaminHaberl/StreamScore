@@ -9,6 +9,9 @@
       "strict_min_version": "109.0"
     }
   },
+  "data_collection_permissions": {
+    "citation": "StreamScore does not collect or store personal user data. It only transmits movie and TV show titles to OMDb and TMDb APIs to fetch ratings. All API keys and movie scores are stored locally on the user's device using chrome.storage.local."
+  },
   "permissions": [
     "storage",
     "unlimitedStorage",
