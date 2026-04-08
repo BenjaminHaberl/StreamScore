@@ -2,36 +2,40 @@
 
 const PROCESSED_ATTR = 'data-rt-processed';
 
-function createBadge(score) {
-  // Use a custom HTML tag to completely immune the badge from Google's global span CSS selectors
-  const badge = document.createElement('rt-badge');
-  badge.classList.add('rt-helper-badge');
-
-  if (!score) {
-    badge.textContent = 'N/A';
-    return badge;
+function createBadge(scores) {
+  if (!scores || (!scores.rtScore && !scores.imdbScore)) {
+    // For Google searches, we silently skip rendering N/A or Err 
+    // since the vast majority of query results are not actually movies!
+    return null;
   }
 
-  // Parse the percentage to determine the color
-  const percentage = parseInt(score.replace('%', ''), 10);
-  
-  if (!isNaN(percentage)) {
-    if (percentage >= 60) {
-      badge.classList.add('rt-fresh');
-      badge.innerHTML = `<span class="rt-icon">🍅</span> ${score}`;
+  // Use a custom HTML tag to completely immune the badge from Google's global span CSS selectors
+  const badge = document.createElement('rt-badge');
+  badge.classList.add('rt-helper-badge', 'google-context');
+
+  if (scores.rtScore) {
+    const percentage = parseInt(scores.rtScore.replace('%', ''), 10);
+    if (!isNaN(percentage)) {
+      if (percentage >= 60) {
+        badge.classList.add('rt-fresh');
+        badge.innerHTML = `<span class="rt-icon">🍅</span> ${scores.rtScore}`;
+      } else {
+        badge.classList.add('rt-rotten');
+        badge.innerHTML = `<span class="rt-icon">🤢</span> ${scores.rtScore}`;
+      }
     } else {
-      badge.classList.add('rt-rotten');
-      badge.innerHTML = `<span class="rt-icon">🤢</span> ${score}`; // Placeholder splat
+      badge.textContent = scores.rtScore;
     }
-  } else {
-    badge.textContent = score;
+  } else if (scores.imdbScore) {
+    badge.classList.add('rt-imdb');
+    badge.innerHTML = `<span class="rt-icon">⭐</span> ${scores.imdbScore}`;
   }
 
   return badge;
 }
 
-function processGoogleTitle(titleElement) {
-  const titleText = titleElement.textContent.trim();
+function processGoogleTitle(titleElement, providedTitleText) {
+  const titleText = providedTitleText || titleElement.textContent.trim();
   if (!titleText) return;
 
   // Prevent repeated background fetches if Google reuses the DOM node without changing the text
@@ -52,12 +56,12 @@ function processGoogleTitle(titleElement) {
         return;
       }
 
-      if (response && response.rtScore) {
-        console.log("RT Helper: Creating badge for score", response.rtScore);
-        const badge = createBadge(response.rtScore);
-        
-        // Use appendChild instead of afterend for standard h3s to avoid Google flex-order and caret-rotation tricks
-        titleElement.appendChild(badge);
+      if (response) {
+        const badge = createBadge(response);
+        if (badge) {
+          badge.style.display = 'inline-flex';
+          titleElement.appendChild(badge);
+        }
       } else {
         console.warn("RT Helper: Valid response but no score found", response);
       }
@@ -66,24 +70,36 @@ function processGoogleTitle(titleElement) {
 }
 
 function scanGoogleDOM() {
-  console.log("RT Helper: Scanning Google DOM...");
-  
-  // 1. Knowledge Panel Title
-  const kPanelTitles = document.querySelectorAll(`[data-attrid="title"] span[role="heading"], [data-attrid="title"]`);
-  kPanelTitles.forEach(el => {
-    if (el.children.length === 0 || el.getAttribute('role') === 'heading') {
-      processGoogleTitle(el);
+  const searchResults = document.querySelectorAll('h3');
+
+  searchResults.forEach((titleElement) => {
+    // Avoid infinite loops by stripping out any text from our own injected badges!
+    let titleText = "";
+    titleElement.childNodes.forEach(child => {
+       if (child.nodeName && child.nodeName.toLowerCase() !== 'rt-badge') {
+           titleText += child.textContent;
+       }
+    });
+    
+    const title = titleText.trim();
+    if (title && title.length > 0) {
+      processGoogleTitle(titleElement, title);
     }
   });
 
-  // 2. Standard Search Results (h3 usually holds the title)
-  const standardResults = document.querySelectorAll('h3');
-  standardResults.forEach(el => {
-    // Check if the h3 has text and is likely a search result
-    if (el.textContent.trim().length > 0) {
-       processGoogleTitle(el);
-    }
-  });
+  const knowledgePanelTitle = document.querySelector('h2[data-attrid="title"]');
+  if (knowledgePanelTitle) {
+      let titleText = "";
+      knowledgePanelTitle.childNodes.forEach(child => {
+         if (child.nodeName && child.nodeName.toLowerCase() !== 'rt-badge') {
+             titleText += child.textContent;
+         }
+      });
+      const title = titleText.trim();
+      if (title && title.length > 0) {
+         processGoogleTitle(knowledgePanelTitle, title);
+      }
+  }
 }
 
 function observeDOM() {

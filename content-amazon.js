@@ -2,26 +2,36 @@
 
 const PROCESSED_ATTR = 'data-rt-processed';
 
-function createBadge(score) {
+function createBadge(scores) {
   const badge = document.createElement('rt-badge');
   badge.classList.add('rt-helper-badge', 'amazon-context');
 
-  if (!score) {
+  if (!scores || (!scores.rtScore && !scores.imdbScore)) {
+    if (scores && scores.error && scores.error !== 'Not found') {
+       // Silently fail if the API key is broken or rate-limited so we don't spam the UI with [Err]
+       return null;
+    }
     badge.textContent = 'N/A';
+    badge.style.background = 'rgba(100, 100, 100, 0.8)';
     return badge;
   }
 
-  const percentage = parseInt(score.replace('%', ''), 10);
-  if (!isNaN(percentage)) {
-    if (percentage >= 60) {
-      badge.classList.add('rt-fresh');
-      badge.innerHTML = `<span class="rt-icon">🍅</span> ${score}`;
+  if (scores.rtScore) {
+    const percentage = parseInt(scores.rtScore.replace('%', ''), 10);
+    if (!isNaN(percentage)) {
+      if (percentage >= 60) {
+        badge.classList.add('rt-fresh');
+        badge.innerHTML = `<span class="rt-icon">🍅</span> ${scores.rtScore}`;
+      } else {
+        badge.classList.add('rt-rotten');
+        badge.innerHTML = `<span class="rt-icon">🤢</span> ${scores.rtScore}`;
+      }
     } else {
-      badge.classList.add('rt-rotten');
-      badge.innerHTML = `<span class="rt-icon">🤢</span> ${score}`;
+      badge.textContent = scores.rtScore;
     }
-  } else {
-    badge.textContent = score;
+  } else if (scores.imdbScore) {
+    badge.classList.add('rt-imdb');
+    badge.innerHTML = `<span class="rt-icon">⭐</span> ${scores.imdbScore}`;
   }
 
   return badge;
@@ -38,10 +48,19 @@ function processAmazonTitle(element, titleText, injectTarget, isCard = false) {
   if (element.getAttribute(PROCESSED_ATTR) === cleanTitle) return;
   element.setAttribute(PROCESSED_ATTR, cleanTitle);
   
-  // Deduplicate inline badges in the same wrapper
+  // Aggressively deduplicate inline badges in the same visual area
   if (!isCard) {
-     const wrapper = injectTarget.closest('.av-detail-title, .dv-node-dp-title, h1, .DVWebNode-detail-atf-wrapper') || injectTarget.parentElement;
-     if (wrapper && wrapper.querySelector('rt-badge.rt-helper-badge')) return;
+     let curr = injectTarget;
+     let foundExisting = false;
+     for (let i = 0; i < 4; i++) {
+        if (!curr) break;
+        if (curr.querySelector('rt-badge.rt-helper-badge')) {
+           foundExisting = true;
+           break;
+        }
+        curr = curr.parentElement;
+     }
+     if (foundExisting) return;
   }
 
   chrome.runtime.sendMessage(
@@ -53,8 +72,7 @@ function processAmazonTitle(element, titleText, injectTarget, isCard = false) {
       }
 
       if (response) {
-        const score = response.rtScore || 'N/A';
-        const badge = createBadge(score);
+        const badge = createBadge(response);
         
         if (isCard) {
           badge.style.position = 'absolute';
@@ -68,6 +86,12 @@ function processAmazonTitle(element, titleText, injectTarget, isCard = false) {
           badge.style.marginLeft = '12px';
           badge.style.verticalAlign = 'middle';
           badge.style.position = 'relative';
+          // Prevent flex containers from horribly stretching the badge into a giant block!
+          badge.style.alignSelf = 'flex-start';
+          badge.style.justifySelf = 'flex-start';
+          badge.style.flexShrink = '0';
+          badge.style.width = 'max-content';
+          badge.style.maxWidth = 'max-content';
         }
         
         const oldBadge = isCard ? injectTarget.querySelector('rt-badge.rt-helper-badge') : injectTarget.nextElementSibling;

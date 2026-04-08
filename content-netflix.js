@@ -2,26 +2,36 @@
 
 const PROCESSED_ATTR = 'data-rt-processed';
 
-function createBadge(score) {
+function createBadge(scores) {
   const badge = document.createElement('rt-badge');
   badge.classList.add('rt-helper-badge', 'netflix-context');
 
-  if (!score) {
+  if (!scores || (!scores.rtScore && !scores.imdbScore)) {
+    if (scores && scores.error && scores.error !== 'Not found') {
+       // Silently fail if the API key is broken or rate-limited so we don't spam the UI with [Err]
+       return null;
+    }
     badge.textContent = 'N/A';
+    badge.style.background = 'rgba(100, 100, 100, 0.8)';
     return badge;
   }
 
-  const percentage = parseInt(score.replace('%', ''), 10);
-  if (!isNaN(percentage)) {
-    if (percentage >= 60) {
-      badge.classList.add('rt-fresh');
-      badge.innerHTML = `<span class="rt-icon">🍅</span> ${score}`;
+  if (scores.rtScore) {
+    const percentage = parseInt(scores.rtScore.replace('%', ''), 10);
+    if (!isNaN(percentage)) {
+      if (percentage >= 60) {
+        badge.classList.add('rt-fresh');
+        badge.innerHTML = `<span class="rt-icon">🍅</span> ${scores.rtScore}`;
+      } else {
+        badge.classList.add('rt-rotten');
+        badge.innerHTML = `<span class="rt-icon">🤢</span> ${scores.rtScore}`;
+      }
     } else {
-      badge.classList.add('rt-rotten');
-      badge.innerHTML = `<span class="rt-icon">🤢</span> ${score}`;
+      badge.textContent = scores.rtScore;
     }
-  } else {
-    badge.textContent = score;
+  } else if (scores.imdbScore) {
+    badge.classList.add('rt-imdb');
+    badge.innerHTML = `<span class="rt-icon">⭐</span> ${scores.imdbScore}`;
   }
 
   return badge;
@@ -41,8 +51,9 @@ function processNetflixTitle(element, titleText, injectTarget) {
         return;
       }
 
-      if (response && response.rtScore) {
-        const badge = createBadge(response.rtScore);
+      if (response) {
+        // Create custom badge element
+        const badge = createBadge(response);
         badge.style.zIndex = '9999';
         badge.style.position = 'relative';
         badge.style.marginLeft = '12px';
