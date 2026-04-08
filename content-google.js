@@ -119,5 +119,11 @@ function observeDOM() {
 }
 
 // Initial run for already loaded elements
-scanGoogleDOM();
-observeDOM();
+chrome.storage.local.get(['enableGoogle'], (result) => {
+   if (result.enableGoogle !== false) {
+       scanGoogleDOM();
+       observeDOM();
+   } else {
+       console.log("RT Helper: Google integration disabled by user.");
+   }
+});

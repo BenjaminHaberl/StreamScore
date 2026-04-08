@@ -217,5 +217,11 @@ function observeAmazonDOM() {
 }
 
 // Initial run
-scanAmazonDOM();
-observeAmazonDOM();
+chrome.storage.local.get(['enableAmazon'], (result) => {
+   if (result.enableAmazon !== false) {
+       scanAmazonDOM();
+       observeAmazonDOM();
+   } else {
+       console.log("RT Helper: Amazon integration disabled by user.");
+   }
+});

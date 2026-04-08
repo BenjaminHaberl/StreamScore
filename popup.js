@@ -3,14 +3,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const tApiKeyInput = document.getElementById('tmdbApiKey');
   const saveBtn = document.getElementById('saveBtn');
   const statusEl = document.getElementById('status');
+  
+  const toggleAmazon = document.getElementById('toggleAmazon');
+  const toggleNetflix = document.getElementById('toggleNetflix');
+  const toggleGoogle = document.getElementById('toggleGoogle');
 
-  // Load existing keys
-  chrome.storage.local.get(['omdbApiKey', 'tmdbApiKey'], (result) => {
+  // Load existing configuration (Keys and Toggles)
+  chrome.storage.local.get(['omdbApiKey', 'tmdbApiKey', 'enableAmazon', 'enableNetflix', 'enableGoogle'], (result) => {
     if (result.omdbApiKey) oApiKeyInput.value = result.omdbApiKey;
     if (result.tmdbApiKey) tApiKeyInput.value = result.tmdbApiKey;
+    
+    // Default to true if undefined
+    toggleAmazon.checked = result.enableAmazon !== false;
+    toggleNetflix.checked = result.enableNetflix !== false;
+    toggleGoogle.checked = result.enableGoogle !== false;
   });
 
+  // Auto-save toggle states immediately upon click
+  const saveToggles = () => {
+     chrome.storage.local.set({
+        enableAmazon: toggleAmazon.checked,
+        enableNetflix: toggleNetflix.checked,
+        enableGoogle: toggleGoogle.checked
+     });
+  };
+
+  toggleAmazon.addEventListener('change', saveToggles);
+  toggleNetflix.addEventListener('change', saveToggles);
+  toggleGoogle.addEventListener('change', saveToggles);
+
   // Save new keys
+
   saveBtn.addEventListener('click', () => {
     const oKey = oApiKeyInput.value.trim();
     const tKey = tApiKeyInput.value.trim();

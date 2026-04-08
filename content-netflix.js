@@ -121,5 +121,11 @@ function observeNetflixDOM() {
 }
 
 // Initial run
-scanNetflixDOM();
-observeNetflixDOM();
+chrome.storage.local.get(['enableNetflix'], (result) => {
+   if (result.enableNetflix !== false) {
+       scanNetflixDOM();
+       observeNetflixDOM();
+   } else {
+       console.log("RT Helper: Netflix integration disabled by user.");
+   }
+});
