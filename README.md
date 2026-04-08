@@ -1,6 +1,6 @@
-# 🍅 Rotten Tomatoes Helper Extension
+# 🍿 StreamScore
 
-A robust, intelligent, and highly resilient Chrome/Firefox Extension designed to inject real-time Rotten Tomatoes scores seamlessly into Google Search results, Amazon Prime Video, and Netflix. 
+A high-performance, completely native browser extension that seamlessly injects Movie Ratings (Rotten Tomatoes, IMDb, TMDb) directly into your favorite streaming sites like Amazon Prime Video and Netflix!
 
 ## ✨ Features
 

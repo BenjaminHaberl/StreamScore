@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Rotten Tomatoes Helper",
+  "name": "StreamScore",
   "version": "1.0",
-  "description": "Visualizes Rotten Tomatoes scores next to movie titles (powered by OMDb API).",
+  "description": "Visualizes Movie Ratings (Rotten Tomatoes, IMDb, TMDb) directly inside your favorite streaming services.",
   "permissions": [
     "storage",
     "unlimitedStorage",
